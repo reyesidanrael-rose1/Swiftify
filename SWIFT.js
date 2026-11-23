@@ -1,14 +1,7 @@
-/* ==========================================================
-   Swiftify — behavior
-   Sections: 1 Data · 2 Helpers · 3 Rendering · 4 Navigation
-             5 Playback · 6 Player controls · 7 Events · 8 Start
-   ========================================================== */
 (() => {
   'use strict';
 
-  /* ---------- 1. DATA ----------
-     `file` must match the real filename inside the /songs folder.
-     c1 / c2 / ink are the colors used for each generated cover. */
+  
   const ARTIST = 'Taylor Swift';
 
   const SONGS = [
