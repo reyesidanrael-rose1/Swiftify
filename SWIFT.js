@@ -1,3 +1,4 @@
+
 (() => {
   'use strict';
 
@@ -239,6 +240,11 @@
       if (use) use.setAttribute('href', el.dataset.play === state.currentId && playing ? '#i-pause' : '#i-play');
     });
 
+    const cur = byId[state.currentId];
+    $('#hero-sub').textContent = playing && cur
+      ? `Now playing: ${cur.title}, from ${cur.album}`
+      : 'Ten Taylor Swift songs, ready when you are.';
+
     $('#play-icon use').setAttribute('href', playing ? '#i-pause' : '#i-play');
     $('#btn-play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
 
@@ -253,6 +259,7 @@
   }
 
   /* ---------- 4. NAVIGATION ---------- */
+  let enterTimer;
   function setView(name, playlistId) {
     state.view = name;
     if (playlistId) state.playlistId = playlistId;
@@ -261,8 +268,18 @@
       if (b.dataset.view === name) b.setAttribute('aria-current', 'page');
       else b.removeAttribute('aria-current');
     });
+    closeNowPlaying();
     render();
     $('#main').scrollTop = 0;
+
+    const view = $('#view-' + name);
+    view.classList.remove('enter');
+    void view.offsetWidth;                         // restart the animation
+    $$('.card, .row, .tile', view).forEach((el, i) => el.style.setProperty('--i', i));
+    view.classList.add('enter');
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => view.classList.remove('enter'), 1300);
+
     if (name === 'search') $('#search-input').focus();
   }
 
@@ -295,6 +312,7 @@
     $('#player-title').textContent = song.title;
     $('#player-artist').textContent = ARTIST;
     $('#player-like').dataset.like = id;
+    applyTheme(song);
     updateProgress();
 
     if (autoplay) {
@@ -388,13 +406,32 @@
     load(startId);
   }
 
-  function toggleLike(id) {
+  function heartBurst(btn) {
+    if (!btn || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const r = btn.getBoundingClientRect();
+    const colors = ['#ff8fc7', '#b9a2ff', '#ffd27a', '#8fd5ff', '#ff7aa8'];
+    for (let i = 0; i < 7; i++) {
+      const el = document.createElement('span');
+      el.className = 'float-heart';
+      el.innerHTML = icon('heart');
+      el.style.left = (r.left + r.width / 2 - 9 + (Math.random() * 16 - 8)) + 'px';
+      el.style.top = (r.top + r.height / 2 - 9) + 'px';
+      el.style.color = colors[i % colors.length];
+      el.style.setProperty('--dx', (Math.random() * 70 - 35) + 'px');
+      el.style.animationDelay = (i * 50) + 'ms';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+    }
+  }
+
+  function toggleLike(id, btn) {
     if (!id) return;
     if (state.liked.has(id)) {
       state.liked.delete(id);
       toast('Removed from Liked Songs');
     } else {
       state.liked.add(id);
+      heartBurst(btn);
       toast('Added to Liked Songs');
     }
     store.set('liked', [...state.liked]);
@@ -434,6 +471,33 @@
     navigator.mediaSession.metadata = new MediaMetadata({ title: song.title, artist: ARTIST, album: song.album });
   }
 
+  /* The whole app tints itself with the colors of the song that is playing */
+  function applyTheme(song) {
+    const root = document.documentElement;
+    root.style.setProperty('--np1', song.c1);
+    root.style.setProperty('--np2', song.c2);
+    const vinyl = $('#vinyl');
+    vinyl.style.setProperty('--c1', song.c1);
+    vinyl.style.setProperty('--c2', song.c2);
+    $('#np-title').textContent = song.title;
+    $('#np-sub').textContent = `${ARTIST}, ${song.album} (${song.year})`;
+  }
+
+  function openNowPlaying() {
+    $('#np').hidden = false;
+    $('#btn-expand').setAttribute('aria-expanded', 'true');
+    $('#np-close').focus();
+  }
+  function closeNowPlaying() {
+    $('#np').hidden = true;
+    $('#btn-expand').setAttribute('aria-expanded', 'false');
+  }
+
+  // Bouncing bars for the now-playing screen (CSS-animated, only move while music plays)
+  $('#viz').innerHTML = Array.from({ length: 30 }, () =>
+    `<i style="--t:${(0.55 + Math.random() * 0.8).toFixed(2)}s;--d:-${(Math.random() * 1.5).toFixed(2)}s;--h:${(0.35 + Math.random() * 0.65).toFixed(2)}"></i>`
+  ).join('');
+
   /* ---------- 7. EVENTS ---------- */
   document.addEventListener('click', e => {
     let el;
@@ -445,7 +509,7 @@
       else playSong(id, ctx);
       return;
     }
-    if ((el = e.target.closest('[data-like]'))) { toggleLike(el.dataset.like); return; }
+    if ((el = e.target.closest('[data-like]'))) { toggleLike(el.dataset.like, el); return; }
     if ((el = e.target.closest('[data-open-playlist]'))) { setView('playlist', el.dataset.openPlaylist); return; }
     if ((el = e.target.closest('[data-view]'))) { e.preventDefault(); setView(el.dataset.view); return; }
     if ((el = e.target.closest('[data-action]'))) {
@@ -454,6 +518,9 @@
     }
   });
 
+  $('#btn-expand').addEventListener('click', () => ($('#np').hidden ? openNowPlaying() : closeNowPlaying()));
+  $('#np-close').addEventListener('click', closeNowPlaying);
+  $('#player-cover').addEventListener('click', () => ($('#np').hidden ? openNowPlaying() : closeNowPlaying()));
   $('#btn-play').addEventListener('click', togglePlay);
   $('#btn-next').addEventListener('click', () => next(false));
   $('#btn-prev').addEventListener('click', prev);
@@ -525,6 +592,7 @@
 
   // Space bar toggles play/pause (unless typing or on a button)
   document.addEventListener('keydown', e => {
+    if (e.code === 'Escape' && !$('#np').hidden) { closeNowPlaying(); return; }
     if (e.code !== 'Space') return;
     if (e.target.closest('input, textarea, button, a')) return;
     e.preventDefault();
