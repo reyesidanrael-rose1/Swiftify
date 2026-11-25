@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  
+ 
   const ARTIST = 'Taylor Swift';
 
   const SONGS = [
@@ -35,6 +35,39 @@
     },
     set(key, value) {
       try { localStorage.setItem('swiftify.' + key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+    }
+  };
+
+  // IndexedDB keeps the MP3 files you pick, so they survive a page reload
+  const songDB = {
+    open() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('swiftify', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('songs');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    },
+    async put(id, file) {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('songs', 'readwrite');
+        tx.objectStore('songs').put(file, id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    },
+    async all() {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const out = {};
+        const req = db.transaction('songs').objectStore('songs').openCursor();
+        req.onsuccess = () => {
+          const cur = req.result;
+          if (cur) { out[cur.key] = cur.value; cur.continue(); } else resolve(out);
+        };
+        req.onerror = () => reject(req.error);
+      });
     }
   };
 
@@ -579,11 +612,15 @@
     [...e.target.files].forEach(file => {
       const name = file.name.toLowerCase();
       const song = SONGS.find(s => name.includes(s.id));
-      if (song) { song.file = URL.createObjectURL(file); matched++; }
+      if (song) {
+        song.file = URL.createObjectURL(file);
+        songDB.put(song.id, file).catch(() => { /* saving is a bonus; playing still works */ });
+        matched++;
+      }
     });
     e.target.value = '';
     if (!matched) return toast('None of those files matched. Pick files like anti-hero_mp3.mp3.', 6000);
-    toast(`Loaded ${plural(matched, 'song')}. Press play.`, 4000);
+    toast(`Loaded ${plural(matched, 'song')} and saved them in this browser. Press play.`, 4000);
     if (state.currentId) {
       const wasPlaying = !audio.paused;
       load(state.currentId, { autoplay: wasPlaying || state.hasPlayed });
@@ -613,15 +650,26 @@
   }
 
   /* ---------- 8. START ---------- */
-  const savedVolume = store.get('volume', 80);
-  volume.value = savedVolume;
-  audio.volume = savedVolume / 100;
-  updateVolumeUI();
+  async function restoreSavedSongs() {
+    try {
+      const saved = await songDB.all();
+      Object.entries(saved).forEach(([id, file]) => {
+        if (byId[id]) byId[id].file = URL.createObjectURL(file);
+      });
+    } catch { /* no saved songs, or storage is blocked: use the songs folder */ }
+  }
 
-  // Load the first song (paused) so the player is never empty
-  state.baseQueue = SONGS.map(s => s.id);
-  buildQueue(SONGS[0].id);
-  load(SONGS[0].id, { autoplay: false });
+  restoreSavedSongs().finally(() => {
+    const savedVolume = store.get('volume', 80);
+    volume.value = savedVolume;
+    audio.volume = savedVolume / 100;
+    updateVolumeUI();
 
-  setView('home');
+    // Load the first song (paused) so the player is never empty
+    state.baseQueue = SONGS.map(s => s.id);
+    buildQueue(SONGS[0].id);
+    load(SONGS[0].id, { autoplay: false });
+
+    setView('home');
+  });
 })();
