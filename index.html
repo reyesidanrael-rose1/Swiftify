@@ -11,7 +11,7 @@
 </head>
 <body>
 
-
+<!-- Icon sprite: every icon in the app is referenced from here -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
   <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></symbol>
@@ -24,12 +24,14 @@
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></symbol>
   <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4v16M9 4v16M14.5 5.5l4.5 14"/></symbol>
   <symbol id="i-volume" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
   <symbol id="i-mute" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 9l-6 6M17 9l6 6"/></symbol>
 </svg>
 
 <div class="app">
 
-  
+  <!-- ============ SIDEBAR (fixed on desktop, bottom nav on mobile) ============ -->
   <aside class="sidebar" aria-label="Main navigation">
     <a class="brand" href="#" data-view="home">Swiftify</a>
 
@@ -56,11 +58,12 @@
       </ul>
     </div>
 
+    <!-- EDIT: put your college / barangay name here -->
     <div class="college">
-      <strong>REYES</strong>
-      <strong>MARUHOM</strong>\
-      <strong>PARDILLO</strong>
-      <span>BSIT-1A</span>
+      <strong>Made by:</strong>
+      <span>Reyes</span>
+      <span>Maruhom</span>
+      <span>Pardillo</span>
     </div>
   </aside>
 
@@ -70,9 +73,15 @@
     <!-- HOME -->
     <section class="view" id="view-home">
       <div class="hero">
+        <span class="spark" style="--x:8%;--y:16%;--s:14px;--d:0s" aria-hidden="true"></span>
+        <span class="spark" style="--x:44%;--y:10%;--s:10px;--d:.8s" aria-hidden="true"></span>
+        <span class="spark" style="--x:58%;--y:70%;--s:16px;--d:1.4s" aria-hidden="true"></span>
+        <span class="spark" style="--x:78%;--y:12%;--s:12px;--d:2.1s" aria-hidden="true"></span>
+        <span class="spark" style="--x:92%;--y:60%;--s:10px;--d:.4s" aria-hidden="true"></span>
+        <span class="spark" style="--x:30%;--y:84%;--s:12px;--d:1.9s" aria-hidden="true"></span>
         <div class="hero__text">
-          <h1 id="greeting">Good Day!</h1>
-          <p>Welcome to Swiftify.</p>
+          <h1 id="greeting">Good evening</h1>
+          <p id="hero-sub">Hello! Ready when you are.</p>
           <div class="hero__actions">
             <button type="button" class="btn btn--primary" data-action="play-context" data-ctx="essentials">
               <svg class="icon icon--fill"><use href="#i-play"/></svg>Play all
@@ -142,10 +151,23 @@
 
     <!-- Shown on mobile, where the sidebar branding is hidden -->
     <footer class="main-foot">
-      <strong>University of Cebu - Pardo &amp; Talisay</strong>
-      <span>Project Swiftie</span>
+      <strong>Your College Name</strong>
+      <span>BSIT, IT Extension Project. Barangay Your Barangay</span>
     </footer>
   </main>
+
+  <!-- ============ NOW PLAYING (spinning record) ============ -->
+  <section class="np" id="np" aria-label="Now playing" hidden>
+    <button type="button" class="icon-btn np__close" id="np-close" aria-label="Close now playing">
+      <svg class="icon"><use href="#i-close"/></svg>
+    </button>
+    <div class="vinyl" id="vinyl"><span class="vinyl__label"></span></div>
+    <div class="np__info">
+      <h2 id="np-title">Pick a song</h2>
+      <p id="np-sub">Taylor Swift</p>
+      <div class="viz" id="viz" aria-hidden="true"></div>
+    </div>
+  </section>
 
   <!-- ============ PERSISTENT BOTTOM PLAYER ============ -->
   <footer class="player" aria-label="Music player">
@@ -157,6 +179,9 @@
       </div>
       <button type="button" class="icon-btn like" id="player-like" data-like="" aria-pressed="false" aria-label="Add to Liked Songs">
         <svg class="icon"><use href="#i-heart"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-expand" aria-label="Open now playing" aria-expanded="false">
+        <svg class="icon"><use href="#i-expand"/></svg>
       </button>
     </div>
 
